@@ -154,12 +154,6 @@ npm install
 
 🔐 3. Configurar variáveis de ambiente
 
-Crie um arquivo .env na raiz com as seguintes variáveis:
-
-VITE_SUPABASE_URL=https://<SEU_PROJETO>.supabase.co
-VITE_SUPABASE_ANON_KEY=<SUA_CHAVE_ANON>
-VITE_GOOGLE_CLIENT_ID=<SEU_CLIENT_ID>
-VITE_GOOGLE_CLIENT_SECRET=<SEU_CLIENT_SECRET>
 
 ▶️ 4. Executar o projeto
 npm run dev
