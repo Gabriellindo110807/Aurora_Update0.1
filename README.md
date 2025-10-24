@@ -18,13 +18,21 @@ Julia Santiago	12301841
 O projeto segue rigorosamente o padrão MVC (Model–View–Controller), garantindo separação clara de responsabilidades entre interface, controle e persistência de dados.
 
 src/
+
 ├── components/     # Componentes de interface (View)
+
 ├── controllers/    # Lógica de controle e regras de negócio
+
 ├── models/         # Classes e entidades do domínio (OO)
+
 ├── repositories/   # Camada de persistência (Repository Pattern)
+
 ├── lib/            # Configurações e Singleton de conexão
+
 ├── hooks/          # Observadores reativos e lógica auxiliar
+
 ├── i18n/           # Internacionalização (idiomas)
+
 └── pages/          # Páginas principais da aplicação
 
 ⚙️ Padrões GoF Implementados
