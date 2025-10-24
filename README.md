@@ -45,29 +45,53 @@ Factory Method	Criação de objetos (Produto, Lista, Usuário)	Facilita manuten�
 
 💡 Funcionalidades Implementadas
 Nº	Funcionalidade	Status
+
 1	Cadastro e login de usuários (com Google OAuth)	✔️
+
 2	Interface responsiva do carrinho inteligente	✔️
+
 3	Escaneamento de produtos (simulação via código)	✔️
+
 4	Pesagem automática de itens	✔️
+
 5	Cálculo em tempo real do valor total da compra	✔️
+
 6	Integração entre carrinho e servidor	✔️
+
 7	Registro de produtos no banco de dados	✔️
+
 8	Consulta e atualização de estoque	✔️
+
 9	Emissão de comprovante digital de compra	✔️
+
 10	Histórico completo de compras do usuário	✔️
+
 11	Gerenciamento de sessão do usuário	✔️
+
 12	Armazenamento de dados persistente (SQLite/Drizzle/Supabase)	✔️
+
 13	Rotas RESTful (GET, POST, PUT, DELETE)	✔️
+
 14	Validação de dados no backend	✔️
+
 15	Controle de erros centralizado	✔️
+
 16	Interface intuitiva para checkout	✔️
+
 17	Configuração via .env	✔️
+
 18	Estilização dinâmica com Tailwind	✔️
+
 19	Modularização com arquitetura limpa	✔️
+
 20	Design responsivo e acessível	✔️
+
 21	Máscaras e validações de CPF e telefone	⚙️ Em desenvolvimento
+
 22	Chatbot inteligente (chatbox de suporte)	⚙️ Em desenvolvimento
+
 23	Interface multilíngue (i18n)	✔️
+
 24	Tema claro/escuro persistente	✔️
 
 ⚙️ Erros Conhecidos e Ajustes em Andamento
@@ -81,16 +105,27 @@ Chatbox (Chatbot inteligente)	A interface de chat ainda está em desenvolvimento
 
 🧰 Tecnologias Utilizadas
 Categoria	Tecnologia
+
 Linguagem	TypeScript
+
 Framework Front-end	React + Vite
+
 Banco de Dados	Supabase (PostgreSQL)
+
 Persistência Local	SQLite / Drizzle ORM
+
 Estilização	Tailwind CSS
+
 Autenticação	Supabase Auth + Google OAuth
+
 Padrões GoF	Singleton, Repository, Observer, Strategy, Factory Method
+
 Integração de IA	Chatbot (OpenAI / HuggingFace API)
+
 Internacionalização	i18next
+
 Controle de versão	Git + GitHub
+
 Deploy	Supabase / Vercel
 
 ⚙️ Como Executar o Projeto
@@ -135,19 +170,33 @@ O projeto será iniciado em:
 
 📂 Estrutura de Diretórios
 Aurora_Update0.1/
+
 ├── public/                  # Assets, ícones e logotipos
+
 ├── src/
+
 │   ├── components/           # Componentes reutilizáveis (View)
+
 │   ├── controllers/          # Lógica de controle e regras de negócio
+
 │   ├── models/               # Entidades OO (Produto, Lista, Usuário)
+
 │   ├── repositories/         # Repository Pattern e persistência
+
 │   ├── lib/                  # Singleton de conexão com Supabase
+
 │   ├── hooks/                # Observadores e lógicas auxiliares
+
 │   ├── i18n/                 # Traduções multilíngues
+
 │   └── pages/                # Páginas principais do app
+
 ├── .env.example              # Exemplo de variáveis de ambiente
+
 ├── package.json
+
 ├── vite.config.ts
+
 └── README.md
 
 🧾 Licença
