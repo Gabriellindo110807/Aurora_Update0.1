@@ -113,7 +113,68 @@ O back-end implementa **5 padrões GoF**:
 - **Repositório GitHub:** https://github.com/Gabriellindo110807/Aurora_Update0.1
 
 ---
+## 💡 Funcionalidades Implementadas
+Nº	Funcionalidade	Status
 
+1	Cadastro e login de usuários (com Google OAuth)	✔️
+
+2	Interface responsiva do carrinho inteligente	✔️
+
+3	Escaneamento de produtos (simulação via código)	✔️
+
+4	Pesagem automática de itens	✔️
+
+5	Cálculo em tempo real do valor total da compra	✔️
+
+6	Integração entre carrinho e servidor	✔️
+
+7	Registro de produtos no banco de dados	✔️
+
+8	Consulta e atualização de estoque	✔️
+
+9	Emissão de comprovante digital de compra	✔️
+
+10	Histórico completo de compras do usuário	✔️
+
+11	Gerenciamento de sessão do usuário	✔️
+
+12	Armazenamento de dados persistente (SQLite/Drizzle/Supabase)	✔️
+
+13	Rotas RESTful (GET, POST, PUT, DELETE)	✔️
+
+14	Validação de dados no backend	✔️
+
+15	Controle de erros centralizado	✔️
+
+16	Interface intuitiva para checkout	✔️
+
+17	Configuração via .env	✔️
+
+18	Estilização dinâmica com Tailwind	✔️
+
+19	Modularização com arquitetura limpa	✔️
+
+20	Design responsivo e acessível	✔️
+
+21	Máscaras e validações de CPF e telefone	⚙️ Em desenvolvimento
+
+22	Chatbot inteligente (chatbox de suporte)	⚙️ Em desenvolvimento
+
+23	Interface multilíngue (i18n)	✔️
+
+24	Tema claro/escuro persistente	✔️
+
+## ⚙️ Erros Conhecidos e Ajustes em Andamento
+Problema Identificado	Descrição	Status
+Botão de login ausente	O botão de login ainda não está visível na interface principal.	⚙️ Corrigindo
+Nome aleatório na tela inicial	A tela de login exibe um identificador genérico em vez do nome real do sistema.	⚙️ Corrigindo
+Máscaras de CPF e telefone	O sistema de cadastro ainda não possui máscaras aplicadas aos campos de CPF e telefone.	⚙️ Em desenvolvimento
+Integração Google API	A API do Google OAuth ainda não foi configurada corretamente, portanto está temporariamente desabilitada.	⚙️ Em correção
+Produtos não vinculando às listas	Há uma falha ao adicionar produtos às listas criadas; a equipe já está corrigindo o problema.	⚙️ Corrigindo
+Chatbox (Chatbot inteligente)	A interface de chat ainda está em desenvolvimento e será integrada com IA em breve.	⚙️ Em desenvolvimento
+
+
+---
 ## 👨‍💻 Desenvolvido por
 
 **Equipe Aurora Technology - 2025**
