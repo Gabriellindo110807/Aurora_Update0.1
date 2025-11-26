@@ -10,12 +10,13 @@
  */
 
 const firebaseSingleton = require('../config/firebase');
+const { collection, addDoc, getDoc, doc, getDocs, query, where, limit, updateDoc, deleteDoc } = require('firebase/firestore');
 const User = require('../models/User');
 
 class UserRepository {
   constructor() {
     this.db = firebaseSingleton.getFirestore();
-    this.collection = this.db.collection('users');
+    this.collectionName = 'users';
   }
 
   /**
@@ -23,7 +24,8 @@ class UserRepository {
    */
   async create(user) {
     try {
-      const docRef = await this.collection.add(user.toObject());
+      const collectionRef = collection(this.db, this.collectionName);
+      const docRef = await addDoc(collectionRef, user.toObject());
       user.id = docRef.id;
       return user;
     } catch (error) {
@@ -36,14 +38,15 @@ class UserRepository {
    */
   async findById(id) {
     try {
-      const doc = await this.collection.doc(id).get();
+      const docRef = doc(this.db, this.collectionName, id);
+      const docSnap = await getDoc(docRef);
 
-      if (!doc.exists) {
+      if (!docSnap.exists()) {
         return null;
       }
 
-      const data = doc.data();
-      return new User(doc.id, data.email, data.name, data.createdAt);
+      const data = docSnap.data();
+      return new User(docSnap.id, data.email, data.name, data.createdAt);
     } catch (error) {
       throw new Error(`Erro ao buscar usuário: ${error.message}`);
     }
@@ -54,18 +57,17 @@ class UserRepository {
    */
   async findByEmail(email) {
     try {
-      const snapshot = await this.collection
-        .where('email', '==', email)
-        .limit(1)
-        .get();
+      const collectionRef = collection(this.db, this.collectionName);
+      const q = query(collectionRef, where('email', '==', email), limit(1));
+      const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
         return null;
       }
 
-      const doc = snapshot.docs[0];
-      const data = doc.data();
-      return new User(doc.id, data.email, data.name, data.createdAt);
+      const docSnap = snapshot.docs[0];
+      const data = docSnap.data();
+      return new User(docSnap.id, data.email, data.name, data.createdAt);
     } catch (error) {
       throw new Error(`Erro ao buscar usuário por email: ${error.message}`);
     }
@@ -76,12 +78,13 @@ class UserRepository {
    */
   async findAll() {
     try {
-      const snapshot = await this.collection.get();
+      const collectionRef = collection(this.db, this.collectionName);
+      const snapshot = await getDocs(collectionRef);
       const users = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        users.push(new User(doc.id, data.email, data.name, data.createdAt));
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        users.push(new User(docSnap.id, data.email, data.name, data.createdAt));
       });
 
       return users;
@@ -95,7 +98,8 @@ class UserRepository {
    */
   async update(id, userData) {
     try {
-      await this.collection.doc(id).update(userData);
+      const docRef = doc(this.db, this.collectionName, id);
+      await updateDoc(docRef, userData);
       return await this.findById(id);
     } catch (error) {
       throw new Error(`Erro ao atualizar usuário: ${error.message}`);
@@ -107,7 +111,8 @@ class UserRepository {
    */
   async delete(id) {
     try {
-      await this.collection.doc(id).delete();
+      const docRef = doc(this.db, this.collectionName, id);
+      await deleteDoc(docRef);
       return true;
     } catch (error) {
       throw new Error(`Erro ao deletar usuário: ${error.message}`);

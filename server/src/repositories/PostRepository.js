@@ -6,12 +6,13 @@
  */
 
 const firebaseSingleton = require('../config/firebase');
+const { collection, addDoc, getDoc, doc, getDocs, query, where, orderBy, updateDoc, deleteDoc } = require('firebase/firestore');
 const Post = require('../models/Post');
 
 class PostRepository {
   constructor() {
     this.db = firebaseSingleton.getFirestore();
-    this.collection = this.db.collection('posts');
+    this.collectionName = 'posts';
   }
 
   /**
@@ -19,7 +20,8 @@ class PostRepository {
    */
   async create(post) {
     try {
-      const docRef = await this.collection.add(post.toObject());
+      const collectionRef = collection(this.db, this.collectionName);
+      const docRef = await addDoc(collectionRef, post.toObject());
       post.id = docRef.id;
       return post;
     } catch (error) {
@@ -32,15 +34,16 @@ class PostRepository {
    */
   async findById(id) {
     try {
-      const doc = await this.collection.doc(id).get();
+      const docRef = doc(this.db, this.collectionName, id);
+      const docSnap = await getDoc(docRef);
 
-      if (!doc.exists) {
+      if (!docSnap.exists()) {
         return null;
       }
 
-      const data = doc.data();
+      const data = docSnap.data();
       return new Post(
-        doc.id,
+        docSnap.id,
         data.title,
         data.content,
         data.userId,
@@ -58,17 +61,17 @@ class PostRepository {
    */
   async findAll() {
     try {
-      const snapshot = await this.collection
-        .orderBy('createdAt', 'desc')
-        .get();
+      const collectionRef = collection(this.db, this.collectionName);
+      const q = query(collectionRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
 
       const posts = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         posts.push(
           new Post(
-            doc.id,
+            docSnap.id,
             data.title,
             data.content,
             data.userId,
@@ -90,18 +93,21 @@ class PostRepository {
    */
   async findByUserId(userId) {
     try {
-      const snapshot = await this.collection
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .get();
+      const collectionRef = collection(this.db, this.collectionName);
+      const q = query(
+        collectionRef,
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
 
       const posts = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         posts.push(
           new Post(
-            doc.id,
+            docSnap.id,
             data.title,
             data.content,
             data.userId,
@@ -124,7 +130,8 @@ class PostRepository {
   async update(id, postData) {
     try {
       postData.updatedAt = new Date();
-      await this.collection.doc(id).update(postData);
+      const docRef = doc(this.db, this.collectionName, id);
+      await updateDoc(docRef, postData);
       return await this.findById(id);
     } catch (error) {
       throw new Error(`Erro ao atualizar post: ${error.message}`);
@@ -136,7 +143,8 @@ class PostRepository {
    */
   async delete(id) {
     try {
-      await this.collection.doc(id).delete();
+      const docRef = doc(this.db, this.collectionName, id);
+      await deleteDoc(docRef);
       return true;
     } catch (error) {
       throw new Error(`Erro ao deletar post: ${error.message}`);

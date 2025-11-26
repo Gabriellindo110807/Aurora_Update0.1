@@ -17,6 +17,7 @@
  */
 
 const firebaseSingleton = require('../config/firebase');
+const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously } = require('firebase/auth');
 
 /**
  * Interface base para estratégias de autenticação
@@ -26,8 +27,8 @@ class AuthStrategy {
     throw new Error('Método authenticate() deve ser implementado');
   }
 
-  async validateToken(token) {
-    throw new Error('Método validateToken() deve ser implementado');
+  async login(credentials) {
+    throw new Error('Método login() deve ser implementado');
   }
 }
 
@@ -44,25 +45,23 @@ class EmailPasswordStrategy extends AuthStrategy {
     const { email, password } = credentials;
 
     try {
-      // Cria usuário no Firebase Auth
-      const userRecord = await this.auth.createUser({
-        email: email,
-        password: password
-      });
+      // Cria usuário no Firebase Auth (Client SDK)
+      const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
 
       return {
         success: true,
-        userId: userRecord.uid,
-        email: userRecord.email,
+        userId: userCredential.user.uid,
+        email: userCredential.user.email,
         method: 'email-password'
       };
     } catch (error) {
-      // Se usuário já existe, tenta fazer login
-      if (error.code === 'auth/email-already-exists') {
+      // Se usuário já existe, retorna sucesso (será tratado no service)
+      if (error.code === 'auth/email-already-in-use') {
         return {
           success: true,
           message: 'Usuário já existe',
-          method: 'email-password'
+          method: 'email-password',
+          shouldLogin: true
         };
       }
 
@@ -70,19 +69,20 @@ class EmailPasswordStrategy extends AuthStrategy {
     }
   }
 
-  async validateToken(token) {
+  async login(credentials) {
+    const { email, password } = credentials;
+
     try {
-      const decodedToken = await this.auth.verifyIdToken(token);
+      const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+
       return {
-        valid: true,
-        userId: decodedToken.uid,
-        email: decodedToken.email
+        success: true,
+        userId: userCredential.user.uid,
+        email: userCredential.user.email,
+        method: 'email-password'
       };
     } catch (error) {
-      return {
-        valid: false,
-        error: error.message
-      };
+      throw new Error(`Erro no login: ${error.message}`);
     }
   }
 }
@@ -98,13 +98,11 @@ class AnonymousStrategy extends AuthStrategy {
 
   async authenticate(credentials) {
     try {
-      const userRecord = await this.auth.createUser({
-        displayName: credentials.displayName || 'Anônimo'
-      });
+      const userCredential = await signInAnonymously(this.auth);
 
       return {
         success: true,
-        userId: userRecord.uid,
+        userId: userCredential.user.uid,
         method: 'anonymous'
       };
     } catch (error) {
@@ -112,19 +110,9 @@ class AnonymousStrategy extends AuthStrategy {
     }
   }
 
-  async validateToken(token) {
-    try {
-      const decodedToken = await this.auth.verifyIdToken(token);
-      return {
-        valid: true,
-        userId: decodedToken.uid
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        error: error.message
-      };
-    }
+  async login(credentials) {
+    // Para anônimo, login é igual a authenticate
+    return this.authenticate(credentials);
   }
 }
 
@@ -144,17 +132,17 @@ class AuthContext {
   }
 
   /**
-   * Executa autenticação usando a estratégia atual
+   * Executa autenticação (registro) usando a estratégia atual
    */
   async authenticate(credentials) {
     return await this.strategy.authenticate(credentials);
   }
 
   /**
-   * Valida token usando a estratégia atual
+   * Executa login usando a estratégia atual
    */
-  async validateToken(token) {
-    return await this.strategy.validateToken(token);
+  async login(credentials) {
+    return await this.strategy.login(credentials);
   }
 }
 

@@ -11,7 +11,9 @@
  * - Controle centralizado da configuração
  */
 
-const admin = require('firebase-admin');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, connectFirestoreEmulator } = require('firebase/firestore');
+const { getAuth, connectAuthEmulator } = require('firebase/auth');
 
 class FirebaseSingleton {
   constructor() {
@@ -19,35 +21,38 @@ class FirebaseSingleton {
       return FirebaseSingleton.instance;
     }
 
-    // Inicializa o Firebase Admin SDK
+    // Inicializa o Firebase Client SDK
     try {
-      // Para produção, use credenciais reais do arquivo serviceAccountKey.json
-      // Para desenvolvimento/teste, pode usar o emulador ou credenciais de ambiente
+      // Configuração do Firebase a partir das variáveis de ambiente
+      const firebaseConfig = {
+        apiKey: process.env.FIREBASE_API_KEY,
+        authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+        appId: process.env.FIREBASE_APP_ID
+      };
 
-      if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        // Usar credenciais do arquivo JSON em produção
-        const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT);
-        this.app = admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-          databaseURL: process.env.FIREBASE_DATABASE_URL
-        });
-      } else {
-        // Para desenvolvimento: usar credenciais padrão ou emulador
-        this.app = admin.initializeApp({
-          projectId: process.env.FIREBASE_PROJECT_ID || 'aurora-demo'
-        });
+      // Inicializa o app Firebase
+      this.app = initializeApp(firebaseConfig);
 
-        console.log('⚠️  Firebase inicializado em modo desenvolvimento');
-        console.log('   Configure FIREBASE_SERVICE_ACCOUNT para produção');
+      // Inicializa Firestore e Auth
+      this.db = getFirestore(this.app);
+      this.auth = getAuth(this.app);
+
+      // Se estiver em modo desenvolvimento, pode usar emuladores
+      if (process.env.USE_FIREBASE_EMULATOR === 'true') {
+        connectFirestoreEmulator(this.db, 'localhost', 8080);
+        connectAuthEmulator(this.auth, 'http://localhost:9099');
+        console.log('⚠️  Firebase rodando com emuladores locais');
       }
 
-      this.db = admin.firestore();
-      this.auth = admin.auth();
-
       console.log('✅ Firebase Singleton inicializado com sucesso');
+      console.log(`   Projeto: ${firebaseConfig.projectId || 'não configurado'}`);
 
     } catch (error) {
       console.error('❌ Erro ao inicializar Firebase:', error.message);
+      console.error('   Verifique se as variáveis de ambiente estão configuradas no arquivo .env');
       throw error;
     }
 
