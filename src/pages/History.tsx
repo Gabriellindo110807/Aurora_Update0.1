@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { orderController } from "@/controllers";
+import type { Order } from "@/controllers";
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,26 +12,6 @@ import { History as HistoryIcon, Package, Calendar, CreditCard } from "lucide-re
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface Order {
-  id: string;
-  total_amount: number;
-  discount_amount: number;
-  final_amount: number;
-  payment_method: string;
-  status: string;
-  created_at: string;
-  order_items: Array<{
-    id: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-    products: {
-      name: string;
-      category: string;
-    };
-  }>;
-}
-
 const History = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -36,47 +19,36 @@ const History = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         navigate("/auth");
       } else {
-        setUser(session.user);
-        loadOrders(session.user.id);
+        setUser(currentUser);
+        loadOrders(currentUser.uid);
       }
     });
+
+    return () => unsubscribe();
   }, [navigate]);
 
   const loadOrders = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            products (name, category)
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const ordersData = await orderController.getOrders(userId);
+      setOrders(ordersData);
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (ordersData.length === 0) {
+        toast.info("Você ainda não tem pedidos");
+      }
     } catch (error: any) {
       toast.error("Erro ao carregar histórico");
+      console.error("Erro detalhado:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const getPaymentMethodLabel = (method: string) => {
-    const methods: Record<string, string> = {
-      credit_card: "Cartão de Crédito",
-      debit_card: "Cartão de Débito",
-      pix: "PIX",
-      digital_wallet: "Carteira Digital"
-    };
-    return methods[method] || method;
+    return orderController.getPaymentMethodLabel(method);
   };
 
   if (loading) {

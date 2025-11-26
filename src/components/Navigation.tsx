@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { ShoppingCart } from "lucide-react";
+import { auth } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { ShoppingCart, LogOut, LogIn } from "lucide-react";
 import { cartController } from "@/controllers";
 import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "./LanguageSelector";
@@ -10,29 +11,19 @@ import { LanguageSelector } from "./LanguageSelector";
 const Navigation = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [itemCount, setItemCount] = useState(0);
 
   useEffect(() => {
-    checkUser();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadCartCount(session.user.id);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        loadCartCount(currentUser.uid);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user ?? null);
-    if (session?.user) {
-      loadCartCount(session.user.id);
-    }
-  };
 
   const loadCartCount = async (userId: string) => {
     try {
@@ -44,7 +35,7 @@ const Navigation = () => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut(auth);
     navigate('/auth');
   };
 
@@ -95,16 +86,18 @@ const Navigation = () => {
             {user ? (
               <button
                 onClick={handleSignOut}
-                className="text-foreground hover:text-secondary transition-all hover:scale-105 font-medium"
+                className="flex items-center gap-2 text-foreground hover:text-secondary transition-all hover:scale-105 font-medium"
               >
-                {t('auth.sign_out')}
+                <LogOut className="w-4 h-4" />
+                Sair
               </button>
             ) : (
-              <Link 
-                to="/auth" 
-                className="px-4 py-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg font-medium transition-all gold-glow"
+              <Link
+                to="/auth"
+                className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg font-medium transition-all gold-glow"
               >
-                {t('auth.sign_in')}
+                <LogIn className="w-4 h-4" />
+                LogIn
               </Link>
             )}
           </div>

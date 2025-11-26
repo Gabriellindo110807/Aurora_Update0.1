@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { productController, cartController } from "@/controllers";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { auth } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { productController, cartController, shoppingListController } from "@/controllers";
 import type { Product } from "@/models/Product";
 import { toProduct } from "@/models/Product";
 import Navigation from "@/components/Navigation";
@@ -10,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Search, ShoppingCart, Filter, Package } from "lucide-react";
+import { Search, ShoppingCart, Filter, Package, ListPlus } from "lucide-react";
 
 const Products = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const listId = searchParams.get('listId');
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -24,14 +27,16 @@ const Products = () => {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         navigate("/auth");
       } else {
-        setUser(session.user);
-        loadCartCount(session.user.id);
+        setUser(currentUser);
+        loadCartCount(currentUser.uid);
       }
     });
+
+    return () => unsubscribe();
   }, [navigate]);
 
   useEffect(() => {
@@ -91,11 +96,20 @@ const Products = () => {
     }
 
     try {
-      await cartController.addToCart(user.id, productId, 1);
-      toast.success("Produto adicionado ao carrinho!");
-      loadCartCount(user.id);
+      // Se temos listId, adiciona à lista; senão, adiciona ao carrinho
+      if (listId) {
+        await shoppingListController.addItemToList(listId, productId, 1);
+        toast.success("Produto adicionado à lista!");
+        // Redireciona de volta para a lista após 1 segundo
+        setTimeout(() => navigate(`/listas/${listId}`), 1000);
+      } else {
+        await cartController.addToCart(user.uid, productId, 1);
+        toast.success("Produto adicionado ao carrinho!");
+        loadCartCount(user.uid);
+      }
     } catch (error: any) {
       toast.error("Erro ao adicionar produto");
+      console.error("Erro detalhado:", error);
     }
   };
 
@@ -190,8 +204,17 @@ const Products = () => {
                 disabled={product.stock === 0}
                 className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground"
               >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Adicionar
+                {listId ? (
+                  <>
+                    <ListPlus className="w-4 h-4 mr-2" />
+                    Adicionar à Lista
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Adicionar ao Carrinho
+                  </>
+                )}
               </Button>
             </Card>
           ))}

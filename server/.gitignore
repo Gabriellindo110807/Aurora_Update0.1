@@ -1,0 +1,28 @@
+# Dependências
+node_modules/
+package-lock.json
+yarn.lock
+
+# Credenciais Firebase (NÃO COMMITAR!)
+serviceAccountKey.json
+*.pem
+*.key
+
+# Variáveis de ambiente
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
