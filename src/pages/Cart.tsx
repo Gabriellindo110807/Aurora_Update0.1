@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { cartController } from "@/controllers";
 import type { CartItem } from "@/models/Product";
 import { toCartItem } from "@/models/Product";
@@ -19,14 +20,16 @@ const Cart = () => {
   const [discount, setDiscount] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         navigate("/auth");
       } else {
-        setUser(session.user);
-        loadCart(session.user.id);
+        setUser(currentUser);
+        loadCart(currentUser.uid);
       }
     });
+
+    return () => unsubscribe();
   }, [navigate]);
 
   const loadCart = async (userId: string) => {
@@ -44,7 +47,7 @@ const Cart = () => {
     if (!user || newQuantity < 1) return;
 
     try {
-      await cartController.updateQuantity(user.id, productId, newQuantity);
+      await cartController.updateQuantity(user.uid, productId, newQuantity);
       setCartItems(items =>
         items.map(item =>
           item.id === productId ? { ...item, quantity: newQuantity } : item
@@ -59,7 +62,7 @@ const Cart = () => {
     if (!user) return;
 
     try {
-      await cartController.removeFromCart(user.id, productId);
+      await cartController.removeFromCart(user.uid, productId);
       setCartItems(items => items.filter(item => item.id !== productId));
       toast.success("Produto removido do carrinho");
     } catch (error: any) {

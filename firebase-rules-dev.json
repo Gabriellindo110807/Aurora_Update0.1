@@ -1,0 +1,38 @@
+{
+  "rules": {
+    "profiles": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "products": {
+      ".read": true,
+      ".write": false
+    },
+    "cart": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "shopping_lists": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "shopping_list_items": {
+      "$listId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    },
+    "orders": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}

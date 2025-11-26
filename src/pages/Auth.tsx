@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth, database } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
+import { ref, set, update } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -24,20 +26,32 @@ const Auth = () => {
   // Strategy Pattern: Inicializa com estratégia de Email/Password
   const [authContext] = useState(() => new AuthContext(new EmailPasswordStrategy()));
 
+  // Máscaras para inputs
+  const maskPhone = (value: string) => {
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2")
+      .replace(/(-\d{4})\d+?$/, "$1");
+  };
+
+  const maskCPF = (value: string) => {
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+      .replace(/(-\d{2})\d+?$/, "$1");
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
         navigate("/produtos");
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate("/produtos");
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -55,29 +69,21 @@ const Auth = () => {
         
         toast.success("Login realizado com sucesso!");
       } else {
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              full_name: formData.full_name
-            },
-            emailRedirectTo: `${window.location.origin}/produtos`
-          }
-        });
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          formData.email,
+          formData.password
+        );
 
-        if (error) throw error;
-
-        // Update profile with additional data
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('profiles')
-            .update({
-              phone: formData.phone,
-              cpf: formData.cpf
-            })
-            .eq('id', user.id);
+        // Create user profile in Realtime Database
+        if (userCredential.user) {
+          await set(ref(database, `profiles/${userCredential.user.uid}`), {
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            cpf: formData.cpf,
+            created_at: new Date().toISOString()
+          });
         }
 
         toast.success("Cadastro realizado com sucesso!");
@@ -142,9 +148,10 @@ const Auth = () => {
                 <Input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                   placeholder="(11) 99999-9999"
                   className="bg-background border-border"
+                  maxLength={15}
                 />
               </div>
               <div className="space-y-2">
@@ -155,9 +162,10 @@ const Auth = () => {
                 <Input
                   type="text"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, cpf: maskCPF(e.target.value) })}
                   placeholder="000.000.000-00"
                   className="bg-background border-border"
+                  maxLength={14}
                 />
               </div>
             </>

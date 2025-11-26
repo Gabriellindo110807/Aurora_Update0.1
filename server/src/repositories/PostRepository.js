@@ -11,7 +11,7 @@ const Post = require('../models/Post');
 
 class PostRepository {
   constructor() {
-    this.db = firebaseSingleton.getFirestore();
+    this.db = firebaseSingleton.getDatabase();
     this.collectionName = 'posts';
   }
 

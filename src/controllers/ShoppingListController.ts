@@ -64,9 +64,9 @@ export class ShoppingListController {
   /**
    * Atualiza status de uma lista
    */
-  async updateListStatus(listId: string, status: string): Promise<void> {
-    await this.repository.updateStatus(listId, status);
-    
+  async updateListStatus(listId: string, userId: string, status: string): Promise<void> {
+    await this.repository.updateStatus(listId, userId, status);
+
     // Notifica sobre atualização
     shoppingListSubject.notify({ action: 'updated', listId, status });
   }
@@ -74,9 +74,9 @@ export class ShoppingListController {
   /**
    * Deleta uma lista
    */
-  async deleteList(listId: string): Promise<void> {
-    await this.repository.delete(listId);
-    
+  async deleteList(listId: string, userId: string): Promise<void> {
+    await this.repository.delete(listId, userId);
+
     // Notifica sobre deleção
     shoppingListSubject.notify({ action: 'deleted', listId });
   }
@@ -110,9 +110,9 @@ export class ShoppingListController {
   /**
    * Atualiza quantidade de um item
    */
-  async updateItemQuantity(itemId: string, quantity: number): Promise<void> {
-    await this.repository.updateItemQuantity(itemId, quantity);
-    
+  async updateItemQuantity(listId: string, itemId: string, quantity: number): Promise<void> {
+    await this.repository.updateItemQuantity(listId, itemId, quantity);
+
     // Notifica sobre atualização
     shoppingListSubject.notify({ action: 'item_updated', itemId, quantity });
   }
@@ -120,9 +120,9 @@ export class ShoppingListController {
   /**
    * Remove item da lista
    */
-  async removeItemFromList(itemId: string): Promise<void> {
-    await this.repository.removeItem(itemId);
-    
+  async removeItemFromList(listId: string, itemId: string): Promise<void> {
+    await this.repository.removeItem(listId, itemId);
+
     // Notifica sobre remoção
     shoppingListSubject.notify({ action: 'item_removed', itemId });
   }

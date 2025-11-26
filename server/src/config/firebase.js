@@ -12,7 +12,7 @@
  */
 
 const { initializeApp } = require('firebase/app');
-const { getFirestore, connectFirestoreEmulator } = require('firebase/firestore');
+const { getDatabase, connectDatabaseEmulator } = require('firebase/database');
 const { getAuth, connectAuthEmulator } = require('firebase/auth');
 
 class FirebaseSingleton {
@@ -27,28 +27,38 @@ class FirebaseSingleton {
       const firebaseConfig = {
         apiKey: process.env.FIREBASE_API_KEY,
         authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
         projectId: process.env.FIREBASE_PROJECT_ID,
         storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
         messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
         appId: process.env.FIREBASE_APP_ID
       };
 
+      // Validar se todas as variáveis necessárias estão configuradas
+      const requiredVars = ['FIREBASE_API_KEY', 'FIREBASE_PROJECT_ID', 'FIREBASE_DATABASE_URL'];
+      const missingVars = requiredVars.filter(varName => !process.env[varName]);
+
+      if (missingVars.length > 0) {
+        throw new Error(`Variáveis de ambiente faltando: ${missingVars.join(', ')}`);
+      }
+
       // Inicializa o app Firebase
       this.app = initializeApp(firebaseConfig);
 
-      // Inicializa Firestore e Auth
-      this.db = getFirestore(this.app);
+      // Inicializa Realtime Database e Auth
+      this.db = getDatabase(this.app);
       this.auth = getAuth(this.app);
 
       // Se estiver em modo desenvolvimento, pode usar emuladores
       if (process.env.USE_FIREBASE_EMULATOR === 'true') {
-        connectFirestoreEmulator(this.db, 'localhost', 8080);
+        connectDatabaseEmulator(this.db, 'localhost', 9000);
         connectAuthEmulator(this.auth, 'http://localhost:9099');
         console.log('⚠️  Firebase rodando com emuladores locais');
       }
 
       console.log('✅ Firebase Singleton inicializado com sucesso');
-      console.log(`   Projeto: ${firebaseConfig.projectId || 'não configurado'}`);
+      console.log(`   Projeto: ${firebaseConfig.projectId}`);
+      console.log(`   Database: ${firebaseConfig.databaseURL}`);
 
     } catch (error) {
       console.error('❌ Erro ao inicializar Firebase:', error.message);
@@ -60,9 +70,9 @@ class FirebaseSingleton {
   }
 
   /**
-   * Retorna a instância única do Firestore
+   * Retorna a instância única do Realtime Database
    */
-  getFirestore() {
+  getDatabase() {
     return this.db;
   }
 
@@ -81,8 +91,10 @@ class FirebaseSingleton {
   }
 }
 
-// Congela a classe para evitar modificações
-Object.freeze(FirebaseSingleton);
-
 // Exporta a instância única
-module.exports = new FirebaseSingleton();
+const firebaseInstance = new FirebaseSingleton();
+
+// Congela a instância para evitar modificações
+Object.freeze(firebaseInstance);
+
+module.exports = firebaseInstance;

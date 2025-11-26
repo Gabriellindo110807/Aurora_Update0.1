@@ -15,7 +15,7 @@ const User = require('../models/User');
 
 class UserRepository {
   constructor() {
-    this.db = firebaseSingleton.getFirestore();
+    this.db = firebaseSingleton.getDatabase();
     this.collectionName = 'users';
   }
 

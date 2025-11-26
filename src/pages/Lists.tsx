@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/lib/FirebaseClient';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { shoppingListController } from '@/controllers';
 import type { ShoppingList } from '@/controllers';
 import { toast } from 'sonner';
@@ -24,28 +25,16 @@ const Lists = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-      setUser(session.user);
-      loadLists(session.user.id);
-    };
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         navigate('/auth');
       } else {
-        setUser(session.user);
-        loadLists(session.user.id);
+        setUser(currentUser);
+        loadLists(currentUser.uid);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, [navigate]);
 
   const loadLists = async (userId: string) => {
@@ -65,11 +54,11 @@ const Lists = () => {
     if (!newListName.trim() || !user) return;
 
     try {
-      await shoppingListController.createList(user.id, newListName);
+      await shoppingListController.createList(user.uid, newListName);
       toast.success(t('common.success'));
       setNewListName('');
       setDialogOpen(false);
-      loadLists(user.id);
+      loadLists(user.uid);
     } catch (error) {
       console.error('Error creating list:', error);
       toast.error(t('common.error'));

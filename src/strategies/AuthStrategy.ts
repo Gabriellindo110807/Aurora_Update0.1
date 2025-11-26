@@ -1,10 +1,17 @@
 /**
  * Strategy Pattern - Diferentes estratégias de autenticação
- * 
+ *
  * Este padrão permite trocar o algoritmo de autenticação em tempo de execução,
  * facilitando a adição de novos métodos (Google, Facebook, etc).
  */
-import { supabase } from '@/lib/SupabaseClient';
+import { auth } from '@/lib/FirebaseClient';
+import {
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  UserCredential
+} from 'firebase/auth';
 
 export interface IAuthStrategy {
   login(credentials: any): Promise<any>;
@@ -15,19 +22,25 @@ export interface IAuthStrategy {
  * Estratégia de autenticação com Email/Senha
  */
 export class EmailPasswordStrategy implements IAuthStrategy {
-  async login(credentials: { email: string; password: string }) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
-      password: credentials.password,
-    });
-
-    if (error) throw error;
-    return data;
+  async login(credentials: { email: string; password: string }): Promise<UserCredential> {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        credentials.email,
+        credentials.password
+      );
+      return userCredential;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+  async logout(): Promise<void> {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
@@ -35,21 +48,22 @@ export class EmailPasswordStrategy implements IAuthStrategy {
  * Estratégia de autenticação com Google OAuth
  */
 export class GoogleAuthStrategy implements IAuthStrategy {
-  async login(_credentials: any) {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-
-    if (error) throw error;
-    return data;
+  async login(_credentials: any): Promise<UserCredential> {
+    try {
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      return userCredential;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+  async logout(): Promise<void> {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

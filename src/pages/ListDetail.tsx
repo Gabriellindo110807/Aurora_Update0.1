@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, QrCode, Plus, Trash2, Check } from 'lucide-react';
@@ -6,7 +6,8 @@ import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { QRScanner } from '@/components/QRScanner';
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/lib/FirebaseClient';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { shoppingListController, productController } from '@/controllers';
 import type { ShoppingListItem, ShoppingList } from '@/controllers';
 import { toast } from 'sonner';
@@ -21,33 +22,18 @@ const ListDetail = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-      setUser(session.user);
-      loadListData();
-    };
-
-    checkUser();
-  }, [listId, navigate]);
-
-  const loadListData = async () => {
-    if (!listId) return;
+  const loadListData = useCallback(async () => {
+    if (!listId || !user) return;
 
     try {
       setLoading(true);
-      const { data: listData } = await supabase
-        .from('shopping_lists')
-        .select('*')
-        .eq('id', listId)
-        .single();
+
+      // Busca todas as listas do usuário e encontra a lista específica
+      const allLists = await shoppingListController.getLists(user.uid);
+      const listData = allLists.find(l => l.id === listId);
 
       if (listData) {
-        setList(listData as ShoppingList);
+        setList(listData);
         const itemsData = await shoppingListController.getListItems(listId);
         setItems(itemsData);
       }
@@ -57,7 +43,25 @@ const ListDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [listId, user, t]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        navigate('/auth');
+      } else {
+        setUser(currentUser);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (user && listId) {
+      loadListData();
+    }
+  }, [user, listId, loadListData]);
 
   const handleScan = async (code: string) => {
     try {
@@ -80,8 +84,9 @@ const ListDetail = () => {
   };
 
   const removeItem = async (itemId: string) => {
+    if (!listId) return;
     try {
-      await shoppingListController.removeItemFromList(itemId);
+      await shoppingListController.removeItemFromList(listId, itemId);
       toast.success(t('common.success'));
       loadListData();
     } catch (error) {
@@ -91,10 +96,10 @@ const ListDetail = () => {
   };
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+    if (newQuantity < 1 || !listId) return;
 
     try {
-      await shoppingListController.updateItemQuantity(itemId, newQuantity);
+      await shoppingListController.updateItemQuantity(listId, itemId, newQuantity);
       loadListData();
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -103,9 +108,9 @@ const ListDetail = () => {
   };
 
   const startShopping = async () => {
-    if (!listId) return;
+    if (!listId || !user) return;
     try {
-      await shoppingListController.updateListStatus(listId, 'ongoing');
+      await shoppingListController.updateListStatus(listId, user.uid, 'ongoing');
       toast.success(t('common.success'));
       loadListData();
     } catch (error) {
@@ -115,9 +120,9 @@ const ListDetail = () => {
   };
 
   const completeList = async () => {
-    if (!listId) return;
+    if (!listId || !user) return;
     try {
-      await shoppingListController.updateListStatus(listId, 'completed');
+      await shoppingListController.updateListStatus(listId, user.uid, 'completed');
       toast.success(t('common.success'));
       navigate('/listas');
     } catch (error) {
@@ -185,7 +190,7 @@ const ListDetail = () => {
               {t('lists.scan_product')}
             </Button>
             <Button
-              onClick={() => navigate('/produtos')}
+              onClick={() => navigate(`/produtos?listId=${listId}`)}
               variant="outline"
               className="flex-1 border-secondary/30"
             >

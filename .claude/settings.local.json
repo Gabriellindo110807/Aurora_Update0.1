@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(find src/pages -type f -name \"*.tsx\" -exec sed -i 's|import { supabase } from \"\"@/integrations/supabase/client\"\";|import { auth } from \"\"@/lib/FirebaseClient\"\";\\nimport { onAuthStateChanged, User } from \"\"firebase/auth\"\";|g' {} +)",
+      "Bash(node:*)",
+      "Bash(timeout 5 node:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { cartController } from "@/controllers";
+import { auth } from "@/lib/FirebaseClient";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { cartController, orderController } from "@/controllers";
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,17 +20,19 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         navigate("/auth");
       } else {
-        setUser(session.user);
+        setUser(currentUser);
       }
     });
 
     if (!cartItems || cartItems.length === 0) {
       navigate("/carrinho");
     }
+
+    return () => unsubscribe();
   }, [navigate, cartItems]);
 
   const paymentMethods = [
@@ -41,49 +44,27 @@ const Checkout = () => {
 
   const handlePayment = async () => {
     if (!user) return;
-    
+
     setProcessing(true);
 
     try {
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          total_amount: total + (discount || 0),
-          discount_amount: discount || 0,
-          final_amount: total,
-          payment_method: paymentMethod,
-          status: 'completed'
-        })
-        .select()
-        .single();
+      // Cria o pedido
+      await orderController.createOrder(
+        user.uid,
+        cartItems,
+        paymentMethod,
+        discount || 0
+      );
 
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = cartItems.map((item: any) => ({
-        order_id: order.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Clear cart
-      await cartController.clearCart(user.id);
+      // Limpa o carrinho
+      await cartController.clearCart(user.uid);
 
       toast.success("Pagamento realizado com sucesso!");
+      toast.success("Seu pedido foi registrado!");
       navigate("/historico");
     } catch (error: any) {
       toast.error("Erro ao processar pagamento");
-      console.error(error);
+      console.error("Erro detalhado:", error);
     } finally {
       setProcessing(false);
     }
