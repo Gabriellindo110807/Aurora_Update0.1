@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ShoppingCart, Mail, Lock, User, Phone, CreditCard } from "lucide-react";
 import { AuthContext, EmailPasswordStrategy, GoogleAuthStrategy } from "@/strategies/AuthStrategy";
@@ -22,6 +23,8 @@ const Auth = () => {
     phone: "",
     cpf: ""
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedConsent, setAcceptedConsent] = useState(false);
 
   // Strategy Pattern: Inicializa com estratégia de Email/Password
   const [authContext] = useState(() => new AuthContext(new EmailPasswordStrategy()));
@@ -56,6 +59,13 @@ const Auth = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validação dos termos para cadastro
+    if (!isLogin && (!acceptedTerms || !acceptedConsent)) {
+      toast.error("Você deve aceitar os Termos de Uso e o Termo de Consentimento para prosseguir");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -66,7 +76,7 @@ const Auth = () => {
           email: formData.email,
           password: formData.password
         });
-        
+
         toast.success("Login realizado com sucesso!");
       } else {
         const userCredential = await createUserWithEmailAndPassword(
@@ -82,6 +92,9 @@ const Auth = () => {
             email: formData.email,
             phone: formData.phone,
             cpf: formData.cpf,
+            accepted_terms: true,
+            accepted_consent: true,
+            terms_accepted_at: new Date().toISOString(),
             created_at: new Date().toISOString()
           });
         }
@@ -201,10 +214,61 @@ const Auth = () => {
             />
           </div>
 
+          {!isLogin && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="terms"
+                  className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                >
+                  Li e aceito os{" "}
+                  <a
+                    href="/TERMO DE USO DO SISTEMA AURORA TECHNOLOGY LTDA.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-secondary hover:underline font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Termos de Uso
+                  </a>
+                </label>
+              </div>
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="consent"
+                  checked={acceptedConsent}
+                  onCheckedChange={(checked) => setAcceptedConsent(checked as boolean)}
+                  className="mt-1"
+                />
+                <label
+                  htmlFor="consent"
+                  className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                >
+                  Li e aceito o{" "}
+                  <a
+                    href="/TERMO DE CONSENTIMENTO PARA TRATAMENTO DE DADOS  PESSOAIS - AURORA TECHNOLOGY LDTA.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-secondary hover:underline font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Termo de Consentimento para Tratamento de Dados Pessoais
+                  </a>
+                </label>
+              </div>
+            </div>
+          )}
+
           <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold gold-glow"
+            disabled={loading || (!isLogin && (!acceptedTerms || !acceptedConsent))}
+            className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold gold-glow disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Processando..." : isLogin ? "Entrar" : "Cadastrar"}
           </Button>
@@ -251,7 +315,11 @@ const Auth = () => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setAcceptedTerms(false);
+              setAcceptedConsent(false);
+            }}
             className="text-sm text-muted-foreground hover:text-secondary transition-colors"
           >
             {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça login"}
